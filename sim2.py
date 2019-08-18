@@ -50,7 +50,7 @@ def imp_rate():
 ######################################################################
 def connect_db():
     try:
-        con = InfluxDBClient('localhost', 8086,'','','sim')
+        con = InfluxDBClient('localhost', 8086,'','','sim_db')
         return con
     except:
         print("cant connect to influxdb")
@@ -65,6 +65,8 @@ def get_rate(tm_index):
 
     try:
         value = round(numpy.random.normal(base_values[tm_index] * base_line_scale,  dist_scale ))
+        if value < 0:
+            value = 0
     except KeyError:
         # since index range from 0 to 1, random pick a number between 0 and base line scale
         value = round(numpy.random.normal( random.randint(0, base_line_scale) ,  dist_scale ))
@@ -77,12 +79,15 @@ def get_rate(tm_index):
 # date time format: yyyy/mm/ddThh:mm:ssZ
 # should write bigger json instead of insert single data point,
 # if I have time
+# skip write if value is 0
 ######################################################################
 def write_val(dt,val):
 #    print(dt.strftime("%Y-%m-%dT%H:%M:%SZ, ")+str(val))
 #    sys.stdout.flush()
+    if val <= 0:
+        return True
     json_body = [ {
-        "measurement": "sim",
+        "measurement": "sim_val",
         "time": dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "fields": { "val" : val }
         } ]
@@ -100,7 +105,7 @@ def write_current():
     sleep(pause)
 
     # TZ TBD
-    Now=datetime.datetime.now()
+    Now=datetime.datetime.utcnow()
     # today as format yyyy/mm/dd
     dt=Now.strftime("%x")
     # current minute
@@ -131,7 +136,7 @@ def write_range(from_time, to_time):
 ######################################################################
 def purge_range(from_time, to_time):
     try:
-        query_str='delete from "sim" where time >= \''+from_time.strftime("%Y-%m-%dT%H:%M:%SZ")+'\' and time < \''+to_time.strftime("%Y-%m-%dT%H:%M:%SZ"+'\'')
+        query_str='delete from "sim_val" where time >= \''+from_time.strftime("%Y-%m-%dT%H:%M:%SZ")+'\' and time < \''+to_time.strftime("%Y-%m-%dT%H:%M:%SZ"+'\'')
         inf_con.query(query_str)
         return True
     except:
@@ -143,7 +148,7 @@ def purge_range(from_time, to_time):
 ######################################################################
 def last_tm():
     try:
-        query_str='select last("val") from sim'
+        query_str='select last("val") from sim_val'
         res = inf_con.query(query_str)
         for p in res.get_points():
             last_timestamp = p['time']
@@ -153,27 +158,29 @@ def last_tm():
         print(query_str)
 
 
-#write_current()
-#write_current()
-#write_current()
-
-#time_start = datetime.datetime.strptime('2019-08-16T00:00:00','%Y-%m-%dT%H:%M:%S')
-#time_end = datetime.datetime.strptime('2019-08-18T01:00:00','%Y-%m-%dT%H:%M:%S')
-#write_range(time_start,time_end)
-
 try:
     imp_rate()
     inf_con = connect_db()
+
+# test one insert
+#    write_current()
+
+# test backfill
+# UTC
+#    time_start = datetime.datetime.strptime('2019-08-15T00:00:00','%Y-%m-%dT%H:%M:%S')
+#    time_end = datetime.datetime.strptime('2019-08-18T00:00:00','%Y-%m-%dT%H:%M:%S')
 #    purge_range(time_start,time_end)
 #    write_range(time_start,time_end)
+
+# catch up until now
     last_dt = last_tm()
-    write_range(last_dt, datetime.datetime.now())
+    write_range(last_dt, datetime.datetime.utcnow())
+
+# real time
+    while True:
+       write_current()
 except:
     print("error....")
     print(sys.exc_info()[0])
     print(traceback.format_exc())
-
-
-while True:
-    write_current()
 
