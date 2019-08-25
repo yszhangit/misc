@@ -1,12 +1,5 @@
 #!/usr/bin/env python
 
-# v1
-# minute summary maybe unnecessary, just insert data point with second precision
-
-# v2
-# using consistent rate, instead of random rate on random occurance
-# base_line stored per min rate, use pause to calculate each output value
-
 from time import sleep
 import numpy, sys, csv, datetime, random, traceback
 from influxdb import InfluxDBClient
@@ -36,7 +29,7 @@ inf_con = None
 # just use sine summary, not real PROD data, for now
 ######################################################################
 def imp_rate():
-    with open('out.csv') as csvfile:
+    with open('line1.out') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             if row[1] != 'dt':
@@ -50,7 +43,7 @@ def imp_rate():
 ######################################################################
 def connect_db():
     try:
-        con = InfluxDBClient('localhost', 8086,'','','sim_db')
+        con = InfluxDBClient('localhost', 8086,'','','techx')
         return con
     except:
         print("cant connect to influxdb")
@@ -132,6 +125,21 @@ def write_range(from_time, to_time):
             sys.stdout.flush()
 
 ######################################################################
+# write a range need time, once it finished, you cant call write 
+# current directly, it will leave a gap 
+######################################################################
+def write_until_now(from_time):
+    
+    now = datetime.datetime.utcnow()
+    # loop condition:
+    # from_time is less than a mean(pause high and low) before now
+    while from_time < now - datetime.timedelta(seconds = (pause_high - pause_low)/2 + pause_low ):
+        write_range(from_time, now)    
+        from_time =  now
+        now = datetime.datetime.utcnow()
+
+
+######################################################################
 # there wont be error if not data is deleted
 ######################################################################
 def purge_range(from_time, to_time):
@@ -167,14 +175,14 @@ try:
 
 # test backfill
 # UTC
-#    time_start = datetime.datetime.strptime('2019-08-15T00:00:00','%Y-%m-%dT%H:%M:%S')
+#    time_start = datetime.datetime.strptime('2019-08-10T00:00:00','%Y-%m-%dT%H:%M:%S')
 #    time_end = datetime.datetime.strptime('2019-08-18T00:00:00','%Y-%m-%dT%H:%M:%S')
 #    purge_range(time_start,time_end)
 #    write_range(time_start,time_end)
 
 # catch up until now
     last_dt = last_tm()
-    write_range(last_dt, datetime.datetime.utcnow())
+    write_until_now(last_dt)
 
 # real time
     while True:
