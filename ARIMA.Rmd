@@ -1,0 +1,22 @@
+---
+title: "ARIMA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+```
+
+
+> ARIMA models provide another approach to time series forecasting. Exponential smoothing and ARIMA models are the two most widely used approaches to time series forecasting, and provide complementary approaches to the problem. While exponential smoothing models are based on a description of the trend and seasonality in the data, ARIMA models aim to describe the autocorrelations in the data.
+
+# Stationary and Differencing
+
+A stationary time serie data is time independent, any trend or seasonal are not stationary, noise is stationary, same as cyclic, because cycle has not fixed length. 
+
+> In general, a stationary time series will have no predictable patterns in the long-term
+
+Differencing: differences between consecutive observations. 
+
+> ACF plot is also useful for identifying non-stationary time series. For a stationary time series, the ACF will drop to zero relatively quickly, while the ACF of non-stationary data decreases slowly. 
