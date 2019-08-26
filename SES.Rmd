@@ -1,0 +1,72 @@
+---
+title: "Exponential Smoothing Forecasting"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+```
+
+## Introdution
+*This is a reading summary of FPP2 chapter 7*
+proposed by Holt(1957), Brown(1959), and Winter(1960)
+
+> weighted averages of past observations, with the weights decaying exponentially as the observations get older. In other words, the more recent the observation the higher the associated weight. 
+
+## SES(simple exponential smoothing)
+*For data that has no obvious trend or season*
+
+[defination]([https://otexts.com/fpp2/ses.html#eq:7-ses) 
+for any a between 0 and 1, the weights attached to the observations decrease exponentially as we go back in time, hence the name “exponential smoothing”.
+
+The forecast at time is equal to a weighted average between the most recent observation and the previous forecast. The application of every exponential smoothing method requires the smoothing parameters (a) and the initial values (L0) to be chosen. Smoothing parameter can be estimated base 
+on knowdge, or commonly by observed data, for example SSE(sum of squared errors), but non-linear we have to use optimaztion.
+```{r ses} 
+oildata <- window(oil, start=1996)
+fc<-ses(oildata, h=5) 
+summary(fc)
+```
+
+*`ses` using `ets` to estimate `a` and `L0` by default.*, above output is same as using `ets(oildata)$fit$par`, `a` and `L0` are 0.83 and 446.
+
+```{r oil_plot}
+autoplot(oildata) + autolayer(fc$fitted)
+```
+
+## Holt's linear trend method
+*for data with trend*, inlcude smoothing of trend, forecast = level(estimated level) + trend(estimated slope), see [defination](https://otexts.com/fpp2/holt.html)
+
+level is same as SES, in 2nd equation, beta* is smoothing parameter(0 to 1), b(t) is previous estimated trend.
+```{r holt}
+air <- window(ausair, start=1990)
+fc <- holt(air, h=5)
+
+```
+## Holt-Winter seasonal method
+for data with trend and seasonality
+
+## Damped trend method
+*for data regress to flat line over time*, Holt linear increase or desrease is indefinite, Empirical evidence(based on observation or experience), it over-estimated. 
+
+
+## Appendix
+#### logistic function, <https://en.wikipedia.org/wiki/Logistic_function>
+
+* x0 = the x-value of the sigmoid's midpoint,
+* L = the curve's maximum value, and
+* k = the logistic growth rate or steepness of the curve.[1]
+
+
+```{r func}
+# x input, a sequence for demo
+logistic <- function(L,k,x,x0) { 
+  L / (1 + exp( -1 * k * (x -x0)))}
+```
+
+## Including Plots
+
+```{r pressure, echo=FALSE}
+x <- seq(-10,10,by=.1)
+plot(x, logistic(5, 1, x, 2), type='l')
+```
