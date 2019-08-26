@@ -1,0 +1,151 @@
+---
+title: "Exponential Smoothing Forecasting"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+```
+
+## Introdution
+*This is a reading summary of FPP2 chapter 7*
+
+First proposed by Holt(1957), Brown(1959), and Winter(1960)
+
+> weighted averages of past observations, with the weights decaying exponentially as the observations get older. In other words, the more recent the observation the higher the associated weight. 
+
+## SES(simple exponential smoothing)
+*For data that has no obvious trend or season*
+
+[defination] (https://otexts.com/fpp2/ses.html#eq:7-ses) 
+for any a between 0 and 1, the weights attached to the observations decrease exponentially as we go back in time, hence the name “exponential smoothing”.
+
+> The forecast at time is equal to a weighted average between the most recent observation and the previous forecast. The application of every exponential smoothing method requires the smoothing parameters (a) and the initial values (L0) to be chosen. 
+
+Smoothing parameter can be estimated base on knowlodge, or commonly by observed data, for example SSE(sum of squared errors), but non-linear we have to use optimaztion.
+
+```{r ses} 
+oildata <- window(oil, start=1996)
+fc<-ses(oildata, h=5) 
+summary(fc)
+```
+
+*`ses` using `ets` to estimate `a` and `L0` by default.*, above output is same as using `ets(oildata)$fit$par`, `a` and `L0` are 0.83 and 446.
+
+```{r oil_plot}
+autoplot(oildata) + autolayer(fc$fitted)
+```
+
+## Holt's linear trend method
+*for data with trend*, inlcude smoothing of trend, forecast = level(estimated level) + trend(estimated slope), see [defination](https://otexts.com/fpp2/holt.html)
+
+level is same as SES, in 2nd equation, beta* is smoothing parameter(0 to 1), b(t) is previous estimated trend.
+```{r holt}
+air <- window(ausair, start=1990)
+fc <- holt(air, h=5)
+summary(fc)
+```
+
+## Damped trend method
+*for data regress to flat line over time*, Holt linear increase or desrease is indefinite, Empirical evidence(based on observation or experience), it over-estimated. Dumped trend method introduced in 1985 by Gardner & McKenzie, proven very successful and arguably most popular individual method when forecasting many series automatically. It add a parameter that "dampens" trend to flat line in future. adding to Holt's linear, is phi, between 0 and 1, if phi is 1, it's idential to Holt's linear method, commonly set over 0.8, and less than 0.98.
+
+```{r damp}
+fc <- holt(air, h=15)
+fc2 <- holt(air, damped=TRUE, phi = 0.9, h=15)
+autoplot(air) +
+  autolayer(fc, series="Holt's method", PI=FALSE) +
+  autolayer(fc2, series="Damped Holt's method", PI=FALSE) +
+  ggtitle("Forecasts from Holt's method") + xlab("Year") +
+  ylab("Air passengers in Australia (millions)") +
+  guides(colour=guide_legend(title="Forecast"))
+```
+
+`phi=0.9` is an estimated value, `holt(air, damped = T) %>% summary` actually estimated at 0.98. using `tsCV` to compare forecasting accuracy, either MSE or MAE, damped holt is best.
+
+## Holt-Winter seasonal method
+*for data with trend and seasonality*
+
+added seasonal smoothing parameter gamma.  `s(t) = gamma* x (y(t)-iota(t)) + (1- gamma*) x s(t-m)`, where m is integer of seasons, 4 for quarterly, 12 for monthly etc. equation see (https://otexts.com/fpp2/holt-winters.html)
+
+```{r hw}
+aust <- window(austourists,start=2005)
+fit1 <- hw(aust,seasonal="additive")
+autoplot(aust) +
+  autolayer(fit1, series="HW additive forecasts", PI=FALSE) +
+  xlab("Year") +
+  ylab("Visitor nights (millions)")
+```
+
+_removed multiplicative, since season variation is roughly consistent._
+
+*damping* is possible to seasonal holt-winter both additive and multiplicative., juset set `damped=TRUE` in `hw` function.
+
+## Estimation of models
+using nformation criteria for model selection.
+
+TLDR: R-squared is not good for prediction., adjusted R-squared is widely used but tend to select too many predictor. Many like BIC because if there's true underlying model, BIC will select the model, however, there will never be one in real world. just pick one, AICc, AIC, or CV etc. CV, AIC, AICc, BIC are all samller is better, R
+
+*CV (cross validation)* 
+
+1,remove one observation and fit model with remaining data, the you got error, 2, repeat for all observed data, 3, then compute MSE from all errors.
+
+*AIC (Akaike's information criterion)*
+
+`AIC=T * log(SSE/T) + 2(k+2)`, T is number of observation used for estimation, k is number of predictor in model. good for small number of T
+
+*AICc, corrected AIC*
+
+`AICc=AIC + (2(k+2)(k+3)/(T-k-3))` correct bias
+
+*BIC(Bayesian information criterion)*
+
+`BIC=T * log(SSE/T) + (k+2) * log(T)`, BIC penalize number of parameter heavily compares to AIC
+
+*stepwise regression:* not part of forecasting modeling but part of regression concept.
+
+when there are too manyu predictors, 1, start with all predictors, 2, remove one and measure accurary, 3 repeat removall. "forward stepwise regression" when toooo many predicotrs, start with intercept, then add predictor one by one, measure if imporve accuracy.
+
+## forecasting with ETS models
+Forecasted data is t > T(last obsvered) with error is zero.
+
+*prediction interval* cab be complicated, for additive errors, see (https://otexts.com/fpp2/ets-forecasting.html#tab:pitable), in those equations, delta sqared is residual variances ie (sum(x^2)/(n-2)) where x is residual(observed - predicted), m is seasonal period.
+
+
+
+```{r forecast_ets}
+fit <- ets(window(austourists, start= 2005))
+summary(fit)
+fit %>% forecast(h=8) %>% autoplot()
+```
+
+## Appendix
+### state space, `?ets`
+
+- The first letter denotes the error type (“A”, “M” or “Z”); 
+- the second letter denotes the trend type (“N”,”A”,”M” or “Z”); 
+- the third letter denotes the season type (“N”,”A”,”M” or “Z”). 
+
+“N”=none, “A”=additive, “M”=multiplicative and “Z”=automatically selected. 
+
+for example, 
+
+- "ETS(A,N,N)": simple exponential smoothing with additive errors, 
+- "ETS(M,N,N)": simple exponential smoothing with multiplicative errors
+- "ETS(M,A,M)": multiplicative Holt-Winters’ method with multiplicative errors, and so on.
+- "ETS(M,A,N)": holt linear with multiplicative errors
+- "ETS(A,A,N)": holt linear with additive errors
+
+
+### logistic function, <https://en.wikipedia.org/wiki/Logistic_function>
+
+* x0 = the x-value of the sigmoid's midpoint,
+* L = the curve's maximum value, and
+* k = the logistic growth rate or steepness of the curve.[1]
+
+
+```{r func}
+# x input, a sequence for demo
+logistic <- function(L,k,x,x0) { 
+  L / (1 + exp( -1 * k * (x -x0)))}
+```
