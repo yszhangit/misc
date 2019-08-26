@@ -6,10 +6,13 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(fpp2)
+library(urca)
 ```
 
 
 > ARIMA models provide another approach to time series forecasting. Exponential smoothing and ARIMA models are the two most widely used approaches to time series forecasting, and provide complementary approaches to the problem. While exponential smoothing models are based on a description of the trend and seasonality in the data, ARIMA models aim to describe the autocorrelations in the data.
+
+a study notes of [ARIMA](https://otexts.com/fpp2/arima.html)
 
 # Stationary and Differencing
 
@@ -20,3 +23,67 @@ A stationary time serie data is time independent, any trend or seasonal are not 
 Differencing: differences between consecutive observations. 
 
 > ACF plot is also useful for identifying non-stationary time series. For a stationary time series, the ACF will drop to zero relatively quickly, while the ACF of non-stationary data decreases slowly. 
+
+one can do log transform before differencing(multiplicative?)
+
+When differenced data are not stationary, you can try second-order differencing, which is differencing the differces.
+
+#### random walk
+>Random walk models are widely used for non-stationary data, particularly financial and economic data. Random walks typically have:
+
+- long periods of apparent trends up or down
+- sudden and unpredictable changes in direction.
+- forecast from a random walk model is equal to last observation, naive it is then.
+
+#### seasonal differencing
+> A seasonal difference is the difference between an observation and the previous observation from the same season
+
+if desire, one can combine seasonal differencing with second-order differencing and/or log transformation.
+
+
+#### KPSS test, or unit root test
+(Kwiatkowski, Phillips, Schmidt, & Shin, 1992)
+ 
+Null hypothesis is data are stationary, samll p-value ( < 0.05) suggest false, then differencing is required. `ruca` package `ur.kpss()`
+
+```{r kpss}
+goog %>% ur.kpss() %>% summary
+goog %>% diff() %>% ur.kpss() %>% summary()
+```
+
+note the different of test statstics after diff
+
+`ndiffs` function suggest number of difference in order to archive stationary.
+
+# Autogressive models
+Why it called autogression?  in traditional regression model, outcome predicted against predictor(s)
+
+> we forecast the variable of interest using a linear combination of past values of the variable, The term autoregression indicates that it is a regression of the variable against itself.
+
+equation: `y(t) = c + phi(1) * y(t-1) + phi(2) * y(t-2) + ... phi(p) * y(t-p) + e(t)`, AR(p) is very much a multi-variant regression.
+
+> We normally restrict autoregressive models to stationary data. When `p is >= 3` the restrictions are much more complicated. R takes care of these restrictions when estimating a model.
+
+# moving average models
+
+>  Rather than using past values of the forecast variable in a regression, a moving average model uses past forecast errors in a regression-like model.
+# Appendix
+
+equation: `y(t) =  c+ e(t) + theta(1) * e(t-1) + theta(2) * e(t-2) + ... + theta(q) * e(t-q)`, MA(q).
+
+*moving average models should not be confused with the moving average smoothing.*
+
+> A moving average model is used for forecasting future values, while moving average smoothing is used for estimating the trend-cycle of past values.
+
+The fact that AR using observed value and MA using error, makes AR(p) model change scale of series not patterns, MA(q) change patterns not scale. AR and MA models are invertible.
+
+## ACF
+
+## Did you forget what is test statistic old man?
+significance level (alpha) is chance of H0 get wrongfully rejected, 0.05 is most common.
+in a bell curve plot(assuming two sided hypothesis test), alpha is cut off area of both tail.
+the critial calue are cut-off value of tail region, so the test statistic is within the rejection region.
+
+p-value is area of test statistic area on both tail (2 sided), so if p-value > alpha, H0 faled to reject.
+
+[a good illustration here](https://www.geogebra.org/m/YRh9H3t5)
