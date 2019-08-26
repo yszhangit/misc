@@ -26,6 +26,8 @@ writer_pause_sec = 5
 base_values={}
 # local docker
 inf_con = None
+# 
+measurement_name = "sin_4"
 
 ######################################################################
 # read baseline value, indexed by time as string in one minute interval
@@ -36,7 +38,7 @@ inf_con = None
 # just use sine summary, not real PROD data, for now
 ######################################################################
 def imp_rate():
-    with open('out.csv') as csvfile:
+    with open('sin_4.csv') as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             if row[1] != 'dt':
@@ -50,7 +52,7 @@ def imp_rate():
 ######################################################################
 def connect_db():
     try:
-        con = InfluxDBClient('localhost', 8086,'','','sim_db')
+        con = InfluxDBClient('localhost', 8086,'','','techx')
         return con
     except:
         print("cant connect to influxdb")
@@ -87,7 +89,7 @@ def write_val(dt,val):
     if val <= 0:
         return True
     json_body = [ {
-        "measurement": "sim_val",
+        "measurement": measurement_name,
         "time": dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "fields": { "val" : val }
         } ]
@@ -136,7 +138,7 @@ def write_range(from_time, to_time):
 ######################################################################
 def purge_range(from_time, to_time):
     try:
-        query_str='delete from "sim_val" where time >= \''+from_time.strftime("%Y-%m-%dT%H:%M:%SZ")+'\' and time < \''+to_time.strftime("%Y-%m-%dT%H:%M:%SZ"+'\'')
+        query_str='delete from "'+measurement_name+'" where time >= \''+from_time.strftime("%Y-%m-%dT%H:%M:%SZ")+'\' and time < \''+to_time.strftime("%Y-%m-%dT%H:%M:%SZ"+'\'')
         inf_con.query(query_str)
         return True
     except:
@@ -148,7 +150,7 @@ def purge_range(from_time, to_time):
 ######################################################################
 def last_tm():
     try:
-        query_str='select last("val") from sim_val'
+        query_str='select last("val") from '+measurement_name
         res = inf_con.query(query_str)
         for p in res.get_points():
             last_timestamp = p['time']
@@ -167,10 +169,10 @@ try:
 
 # test backfill
 # UTC
-#    time_start = datetime.datetime.strptime('2019-08-15T00:00:00','%Y-%m-%dT%H:%M:%S')
-#    time_end = datetime.datetime.strptime('2019-08-18T00:00:00','%Y-%m-%dT%H:%M:%S')
-#    purge_range(time_start,time_end)
-#    write_range(time_start,time_end)
+    time_start = datetime.datetime.strptime('2019-08-10T00:00:00','%Y-%m-%dT%H:%M:%S')
+    time_end = datetime.datetime.strptime('2019-08-18T00:00:00','%Y-%m-%dT%H:%M:%S')
+    purge_range(time_start,time_end)
+    write_range(time_start,time_end)
 
 # catch up until now
     last_dt = last_tm()
