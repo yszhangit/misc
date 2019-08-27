@@ -1,6 +1,8 @@
 ---
 title: "ARIMA"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -60,7 +62,7 @@ Why it called autogression?  in traditional regression model, outcome predicted 
 
 > we forecast the variable of interest using a linear combination of past values of the variable, The term autoregression indicates that it is a regression of the variable against itself.
 
-equation: `y(t) = c + phi(1) * y(t-1) + phi(2) * y(t-2) + ... phi(p) * y(t-p) + e(t)`, AR(p) is very much a multi-variant regression.
+`p` order autogressive model, or AR(p) defination: $y_t = c + \phi_1 y_{t-1} + \phi_2 y_{t-2} + ... \phi_p y_{t-p} + e_t$, it is very much like a multi-variant regression.
 
 > We normally restrict autoregressive models to stationary data. When `p is >= 3` the restrictions are much more complicated. R takes care of these restrictions when estimating a model.
 
@@ -69,13 +71,45 @@ equation: `y(t) = c + phi(1) * y(t-1) + phi(2) * y(t-2) + ... phi(p) * y(t-p) + 
 >  Rather than using past values of the forecast variable in a regression, a moving average model uses past forecast errors in a regression-like model.
 # Appendix
 
-equation: `y(t) =  c+ e(t) + theta(1) * e(t-1) + theta(2) * e(t-2) + ... + theta(q) * e(t-q)`, MA(q).
+`q` order of moving average, or MA(q) equation: $y_t =  c+ e_t + \theta_1 e_{t-1} + \theta_2 e_{t-2} + ... + \theta_q e_{t-q}$
 
 *moving average models should not be confused with the moving average smoothing.*
 
 > A moving average model is used for forecasting future values, while moving average smoothing is used for estimating the trend-cycle of past values.
 
 The fact that AR using observed value and MA using error, makes AR(p) model change scale of series not patterns, MA(q) change patterns not scale. AR and MA models are invertible.
+
+# non-seasonal ARIMA
+Combine AR and MA, 'I' stands for integration, which is reverse of differencing, if $y^{'}$ is differenced series(either once or more). then `ARIMA(p,d,q)` is
+
+$y^{'} = c + \phi_1y^{'}_{t-1} + ... \phi_{p}y^{'}_{t-p} + \theta_1e_{t-1} + ... + \theta_q e_{t-q} + e_t$
+
+p is order of autogression, q is order or moving average, d is degree of first differencing involved.
+
+```{r ariam}
+fit <- auto.arima(uschange[,"Consumption"], seasonal=FALSE)
+summary(fit)
+```
+
+so in this ARIMA(1,0,3), the formular is below
+
+$y_t = c + 0.589y_{t-1} - 0.353e_{t-1} + 0.0846e_{t-2}+0.174e_{t-3} +e_t$
+
+where mean times (1-ar1) $c=0.745 (1-0.589)$, e^2 is 0.35
+
+constant `c` effect on long-term foreast:
+
+- If   c = 0 and   d = 0 , the long-term forecasts will go to zero.
+- If   c = 0 and   d = 1 , the long-term forecasts will go to a non-zero constant.
+- If   c = 0 and   d = 2 , the long-term forecasts will follow a straight line.
+- If   c ≠ 0 and   d = 0 , the long-term forecasts will go to the mean of the data.
+- If   c ≠ 0 and   d = 1 , the long-term forecasts will follow a straight line.
+- If   c ≠ 0 and   d = 2 , the long-term forecasts will follow a quadratic trend.
+
+```{r arima_1}
+fit %>% forecast(h=10) %>% autoplot(include=80)
+
+```
 
 ## ACF
 
