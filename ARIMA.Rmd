@@ -105,7 +105,7 @@ constant `c` effect on long-term foreast:
 - If   c = 0 and   d = 2 , the long-term forecasts will follow a straight line.
 - If   c ≠ 0 and   d = 0 , the long-term forecasts will go to the mean of the data.
 - If   c ≠ 0 and   d = 1 , the long-term forecasts will follow a straight line.
-- If   c ≠ 0 and   d = 2 , the long-term forecasts will follow a quadratic trend.
+- If   c ≠ 0 and   d = 2 , the long-term forecasts will follow a quadratic trend.`
 
 ```{r arima_1}
 fit %>% forecast(h=10) %>% autoplot(include=80)
@@ -113,16 +113,77 @@ fit %>% forecast(h=10) %>% autoplot(include=80)
 ```
 
 ## ACF and partial-ACF
+ACF(autocorelatino and cross-correlation function).
+
 sometime ACF or PACF can help show what value of p and q are appropriate for data. ACF show autocorrelations between $y_t$ and $y_{t-k}$ for different values of `k`. 
 
 Now if $y_t$ and  $y_{t − 1}$ are correlated, then $y_{t − 1}$ and $y_{t − 2}$ must also be correlated. However, then $y_t$ and $y_{t − 2}$ might be correlated, simply because they are both connected to $y_{t − 1}$ , rather than because of any new information contained in $y_{t − 2}$ that could be used in forecasting $y_t$ .
 
-*Parital autocorrelations* address this problem by removeing lags 1,2,...,k-1. 
+*Parital autocorrelations* address this problem by removeing lags 1,2,...,k-1. and measure relationship between $y_t$ and $y_{t-k}$, each parital autocorrelation can be estimated as last coefficient autoregressive model. kth partial autocorrealtion is $\phi_k$ of AR(k).
 
 >  Each partial autocorrelation can be estimated as the last coefficient in an autoregressive model
 
 There are rules to identify p,q with ACF or PACF, but `auto.arima` function do it automatically.
 
+## esitmate orders
+R using MLE(maximum likelihood estimation) to find parameters c, $\phi_1 ... \phi_p$, and $\theta_1 ... \theta_q$. for ARIAM models MLE is simular to least squares, in practice, R reports log likelihood of data.
+
+> For given values of p, d and q, R will try to maximise the log likelihood when finding parameter estimates.
+
+## information criteria
+AIC(Akaike's information criterion) is useful selecting predictors for refressions, is also useful to determine order of ARIAM model. AIC, AICc, and BIC should be miimized value on good model. information critieria not good at selecting differencing(d), only good for  p and q.
+
+# auto.arima()
+R involves root test(kpss), minimize AICc and MLE to create aRIMA model. default parameters and orders are defined [here](https://otexts.com/fpp2/arima-r.html)
+
+- approximation = FALSE to speed up search
+- stepwise = FALSE to search larger set of models
+
+with Amria() function you can choose model yourself.
+
+## procedure for non-seasonal time series data.
+
+1. Plot the data and identify any unusual observations.
+2. If necessary, transform the data (using a Box-Cox transformation) to stabilise the variance.
+3. use auto.arima(), or If the data are non-stationary, take first differences of the data until the data are stationary.
+4. use auto.arima(), or Examine the ACF/PACF: Is an ARIMA(  p , d , 0 ) or ARIMA(  0 , d , q ) model appropriate? 
+5. use auto.arima(), or Try your chosen model(s), and use the AICc to search for a better model.
+6. Check the residuals from your chosen model by plotting the ACF of the residuals, and doing a portmanteau test(in time serie, Ljung-box test) of the residuals. If they do not look like white noise, try a modified model.
+7. Once the residuals look like white noise, calculate forecasts.
+
+```{r ariam_1}
+# seasadj will add error back to trend, baseicly remove seasons
+eeadj <- elecequip %>% stl(s.window = 'periodic') %>% seasadj() 
+# data is not stationary, use differenceing
+eeadj %>% diff() %>% autoplot()
+# PACF suggest AR(3), how? 
+```
+
+The PACF suggest AR(3), which I dont get it why, so inital candidata is ARIMA(3,1,0). then we will try ARIMA(4,1,0), ARIMA(2,1,0), and ARIMA(3,1,1), ARIMA(3,1,1) has slightly smaller AICc
+
+```{r arima_2}
+(fit <- Arima(eeadj, order=c(3,1,1)))
+```
+ check if autocorrelations are within threshold
+
+```{r arima_3}
+checkresiduals(fit)
+```
+
+do a forecast
+
+```{r arima_4}
+forecast(fit) %>% autoplot()
+```
+
+# Forecasting
+# seasonal ARIMA
+# compares to ETS
+
+# Appendix
+
+## Portmanteau test
+in time serie, Ljung-box test and Box-Pierce test are 2 variances, and they are closely connted.  Ljung-Box $H_0$ says data are independent, $H_a$ is data is serial correlated(auto-correaltion)
 
 ## Did you forget what is test statistic old man?
 significance level (alpha) is chance of H0 get wrongfully rejected, 0.05 is most common.
