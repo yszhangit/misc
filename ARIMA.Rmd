@@ -1,8 +1,9 @@
 ---
 title: "ARIMA"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: 
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
@@ -111,7 +112,17 @@ fit %>% forecast(h=10) %>% autoplot(include=80)
 
 ```
 
-## ACF
+## ACF and partial-ACF
+sometime ACF or PACF can help show what value of p and q are appropriate for data. ACF show autocorrelations between $y_t$ and $y_{t-k}$ for different values of `k`. 
+
+Now if $y_t$ and  $y_{t − 1}$ are correlated, then $y_{t − 1}$ and $y_{t − 2}$ must also be correlated. However, then $y_t$ and $y_{t − 2}$ might be correlated, simply because they are both connected to $y_{t − 1}$ , rather than because of any new information contained in $y_{t − 2}$ that could be used in forecasting $y_t$ .
+
+*Parital autocorrelations* address this problem by removeing lags 1,2,...,k-1. 
+
+>  Each partial autocorrelation can be estimated as the last coefficient in an autoregressive model
+
+There are rules to identify p,q with ACF or PACF, but `auto.arima` function do it automatically.
+
 
 ## Did you forget what is test statistic old man?
 significance level (alpha) is chance of H0 get wrongfully rejected, 0.05 is most common.
