@@ -119,9 +119,11 @@ sometime ACF or PACF can help show what value of p and q are appropriate for dat
 
 Now if $y_t$ and  $y_{t − 1}$ are correlated, then $y_{t − 1}$ and $y_{t − 2}$ must also be correlated. However, then $y_t$ and $y_{t − 2}$ might be correlated, simply because they are both connected to $y_{t − 1}$ , rather than because of any new information contained in $y_{t − 2}$ that could be used in forecasting $y_t$ .
 
-*Parital autocorrelations* address this problem by removeing lags 1,2,...,k-1. and measure relationship between $y_t$ and $y_{t-k}$, each parital autocorrelation can be estimated as last coefficient autoregressive model. kth partial autocorrealtion is $\phi_k$ of AR(k).
+*Parital autocorrelations* address this problem by removeing lags 1,2,...,k-1. and measure relationship between $y_t$ and $y_{t-k}$, each parital autocorrelation can be estimated as last coefficient autoregressive model. kth partial autocorrealtion is $\phi_k$ of AR(k). 
 
 >  Each partial autocorrelation can be estimated as the last coefficient in an autoregressive model
+
+In ACF/PACF plot, line over blue line(significant threshold) indicates correlation. in example of the book, PACF has too many big lines, ACF shows 3 lines are over threshold, so to pick simpler model, we should use AR(3). if ACF is smipler, use MA models, you can use both, like the book suggests. [see here for more infor](https://www.youtube.com/watch?v=5Q5p6eVM7zM)
 
 There are rules to identify p,q with ACF or PACF, but `auto.arima` function do it automatically.
 
@@ -177,16 +179,23 @@ forecast(fit) %>% autoplot()
 ```
 
 # Forecasting
+too many [equantions](https://otexts.com/fpp2/arima-forecasting.html)
+
 # seasonal ARIMA
+seasonal ARIMA writen as ARIAM(p,d,q)(P,D,Q)m, where m is number of observatoins per year.
+
+
+
 # compares to ETS
+all ETS models are non-stationary, while some ARIMA models are stationary.
 
 # Appendix
 
 ## Portmanteau test
-in time serie, Ljung-box test and Box-Pierce test are 2 variances, and they are closely connted.  Ljung-Box $H_0$ says data are independent, $H_a$ is data is serial correlated(auto-correaltion)
+in time serie, Ljung-box test and Box-Pierce test are 2 variances of portmanteau test, and they are closely connected.  Ljung-Box $H_0$ says data are independent, $H_a$ is data is serial correlated(auto-correaltion)
 
 ## Did you forget what is test statistic old man?
-significance level (alpha) is chance of H0 get wrongfully rejected, 0.05 is most common.
+significance level (alpha) is chance of $H_0$ get wrongfully rejected, 0.05 is most common value.
 in a bell curve plot(assuming two sided hypothesis test), alpha is cut off area of both tail.
 the critial calue are cut-off value of tail region, so the test statistic is within the rejection region.
 
