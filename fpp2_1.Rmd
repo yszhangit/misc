@@ -1,0 +1,44 @@
+---
+title: "ffp2 note1"
+author: "yinshu zhang"
+date: "August 31, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+```
+
+# about this book
+"Forecasting: principles and Practice, 2nd ed", April 2018
+
+Author Rob J. Hydman, Monash University, Australia. author of main R packages, most noticable `forecast`. Editor in chief of "International Journal of Forecasting" from 2005 to 2018. "fpp2" load ggplot2 and forecast packages and sample data.
+
+why forecasting is important, not only from monitoring perspective, good forecasting give businesses advantage over whose doest possess forecasting or has bad forecasting, think about even without this study, we will still estimate future trx will be over some number. Good forecasting is replicable and testable. some forecasting is easy, some are hard, depends on 
+- how well we understand the data
+- how much data we have
+- is forecasting affect data we use for forecasting.
+
+# time series forecasting
+we consider anything observed sequentially over time in same interval time series, interval can be different but in scope of this study. forecasting in time series is estimate how the sequence of observation continue into the future. Prediction base on predictor often called explanatory model, as Y=f(x1, x2, ..., error) x1, x2, etc are predictors. Time series can be expressed as $Y_{t+1} = f(Y_t, Y_{t-1}, Y_{t-2} ... error)$, prediction is base on past value but no on external variables. There's mixed model knows as dynamic regression, panel data, etc(ch9).
+
+# gernal step of forecasting
+- define problem  
+  most of time this is most difficult part.
+- gather information  
+  gather data and experties
+- exploratory analysis
+- chose models
+- apply and evaluate model
+
+# forecast distribution
+prediction is random value
+
+- prediction interval
+> range of values the random variable could take in relatively high probability. 
+
+95% and 95% commonly used.
+
+- point forecasts
+means of possible future values

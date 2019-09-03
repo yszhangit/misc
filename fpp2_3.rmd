@@ -1,0 +1,198 @@
+---
+title: "fpp2_3"
+author: "yinshu zhang"
+date: "September 1, 2019"
+output: 
+  html_document: 
+    fig_height: 4
+    theme: simplex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+library(fpp2)
+```
+
+# simple forecasting methods
+
+### Average
+mean of all data
+
+### Naive
+last obvervation
+
+### seasonal naive
+last obvervation of same season
+
+### drife method
+naive with increase/decrease over time. the drift is average change in data, 
+
+> This is equivalent to drawing a line between the first and last observations
+
+# transformation
+### Box-Cox transformation:
+$w_t = log(y_t)$ if $\lambda =0$ log is e based, $w_t=(y_t^\lambda-1)/\lambda$ is $\lambda \ne 0$
+
+> A good value of λ is one which makes the size of the seasonal variation about the same across the whole series, as that makes the forecasting model simpler.
+
+```{r box-cox, warning=F}
+lambda <- BoxCox.lambda(elec)
+lambda
+autoplot(BoxCox(elec,lambda))
+```
+
+### back transform and bias adjustments
+when forecast the transformed data, you need to reverse (back-transform) to original scale. reversed box-cox is
+
+$y_t=exp(w_t)$ if $\lambda=0$, otherwise $(\lambda w_t +1)^{1/\lambda}$
+
+simple back-transform give median, if you need mean of orignal scale, use biad-adjusted.
+
+> Bias adjustment is not done by default in the forecast package. if you want your forecast to be means rather than medians, use the argument biasadj=TRUE when you select your Box-Cox transformation parameter.
+
+# residual diagnostics
+
+### fitted values
+value forecasted with previous time series is called fitted value. $\hat{y}_{t|t-1}$ is forecast of $y_t$ base on observations of $y_1$,...,$y_{t-1}$, shorthanded $\hat{y}_t$. fitted values always involve one-step forecasts. Fitted values often are not true forecast because parameters involved in the forecasting method are estimated using all available observations.
+
+
+### Residuals
+Residuals is what left over after fitting a model. $e_t=y_t-\hat{y}_t$. Residual is useful checking if model captured adequate information of time series. a good forecasting model should have residuels with  1, uncorrelated, 2, have zero mean.
+> Any forecasting method that does not satisfy these properties can be improved. However, that does not mean that forecasting methods that satisfy these properties cannot be improved. It is possible to have several different forecasting methods for the same data set, all of which satisfy these properties. Checking these properties is important in order to see whether a method is using all of the available information, but it is not a good way to select a forecasting method.
+
+In addition, useful but no necessary for residuals also should 1, have constant variance, 2, normally distrubted. sometime apply box-cox transformation can help.
+
+# Ljung-Box test, Box-Pierce test
+> A test for a group of autocorrelations is called a portmanteau test, from a French word describing a suitcase containing a number of items.
+
+Box-Pierce test:
+$r_l$ is autocorrelation for lag k, T is number of observations, and h is max lag then
+$Q=T\sum_{k=1}^h r^2_k$
+
+Ljung-Box test is related but more accurate test
+$Q*=T(T+2)\sum_{k=1}^h(T-k)^{-1}r_k^2$
+
+Large Q suggest autocorreation do not come from a white noise. If autocorrelation come from noise, then both Q and Q* would have $\chi^2$ distribution with (h-K) degree of freedom, where K is number of parameters in the model.
+
+example of naive model has no parameter, so K=0
+```{r portmanteau test}
+res <- residuals(naive(goog200))
+Box.test(res, lag=10, fitdf=0)
+Box.test(res,lag=10, fitdf=0, type="Lj")
+```
+
+bot Q and Q* are not significant(ie p-value is large), thus residual are not distringuishable from noise.
+
+```{r checkres}
+checkresiduals(naive(goog200))
+```
+
+
+# forecast accuracy
+
+### forecast error
+forecast error is unpredictable part. note the forecast error isnot residuals. residules are calculated on training set, forecast error are calculated on test set. Second, residual are one-step forecasts, forecast error can involve multi-step forecasts.
+
+### scal-dependent MAE and RMES
+
+Mean absolute error, MAE = mean($|e_t|$)
+Root mean squared error, RMSE = $\sqrt{mean(e_t^2)}$
+
+### percentage errors
+Mean absolute percentage error: MAPE = $mean(|p_t|)$, $p_t = 100e_t/y_t$. 
+
+MAPE is unit free. but if $y_t$ is zero  ro very close to zero, for any t, MAPE would be undefined or infinite. This problem is because if $y_t$ assumed being zero is meaningful. Also MAPE penalize negative errors more than positive errors. 
+
+sMAPE or "symmetric" MAPE is proposed, sMAPE=$mean(200|y_t-\hat{y_t}/(y_t+\hat{y_t}))$. Hoever if $y_t$ is close to zero, $\hat{y_t}$ is also likely to close tozero, so this measure still involve divided by zero problem, also sMAPE can be negative, so it's no t a real "absolute percentage error". some recommend not to use sMAPE but still it's widely used.
+
+### Scaled error
+
+scaled error is proposed by author (2006) as an alternative using percentage error. it scaling error ase on traianing MAE from simple forecast method.  
+
+MASE = $mean(|q_j|)$, $q_j$ is simple forecast value, can be seasonal or non-seasonal.
+
+```{r accurcy}
+beer2 <- window(ausbeer,start=1992,end=c(2007,4))
+beerfit1 <- meanf(beer2,h=10)
+beerfit2 <- rwf(beer2,h=10)
+beerfit3 <- snaive(beer2,h=10)
+autoplot(window(ausbeer, start=1992)) +
+  autolayer(beerfit1, series="Mean", PI=FALSE) +
+  autolayer(beerfit2, series="Naïve", PI=FALSE) +
+  autolayer(beerfit3, series="Seasonal naïve", PI=FALSE) +
+  xlab("Year") + ylab("Megalitres") +
+  ggtitle("Forecasts for quarterly beer production") +
+  guides(colour=guide_legend(title="Forecast"))
+
+# test set
+beer3 <- window(ausbeer, start=2008)
+accuracy(beerfit1, beer3)
+accuracy(beerfit2, beer3)
+accuracy(beerfit3, beer3)
+```
+
+Season vaive method is best choice
+
+below is a non-seasonal example
+
+```{r accuracy_non_season}
+googfc1 <- meanf(goog200, h=40)
+googfc2 <- rwf(goog200, h=40)
+googfc3 <- rwf(goog200, drift=TRUE, h=40)
+autoplot(subset(goog, end = 240)) +
+  autolayer(googfc1, PI=FALSE, series="Mean") +
+  autolayer(googfc2, PI=FALSE, series="Naïve") +
+  autolayer(googfc3, PI=FALSE, series="Drift") +
+  xlab("Day") + ylab("Closing Price (US$)") +
+  ggtitle("Google stock price (daily ending 6 Dec 13)") +
+  guides(colour=guide_legend(title="Forecast"))
+
+# test
+googtest <- window(goog, start=201, end=240)
+accuracy(googfc1, googtest)
+accuracy(googfc2, googtest)
+accuracy(googfc3, googtest)
+```
+
+Here the best method is drift.
+
+### cross-validation, tsCV
+"evaluation on a rolling forecasting origin", the forecast accuracy is computed by average over test set that is rolling forward in time, either one-step or multi-step head of training set. see [illustration](https://otexts.com/fpp2/accuracy.html)
+
+> `tsCV` computes the forecast errors obtained by applying forecastfunction to subsets of the time series y using a rolling forecast origin.
+
+
+```{r tscv}
+e <- tsCV(goog200, rwf, drift=TRUE, h=1)
+# MSE
+sqrt(mean(e^2, na.rm=TRUE))
+# RMSE
+sqrt(mean(residuals(rwf(goog200, drift=TRUE))^2, na.rm=TRUE))
+```
+
+smaller RMSE is better
+
+# prediciotn interval
+
+> a prediction interval gives an interval within which we expect yt to lie with a specified probability
+
+confident interval?
+
+for a 95% prediction interval of h-step forecast is $\hat{y}_{T+h|T}\pm1.96\hat{\delta}_h$, $\delta_h$ is estimated standard deviaction of forecast distribution. more generic formular is $\hat{y}_{T+h|T}\pm c\hat{\delta}_h$, c is multiplier of SD from mean(z-score?), 1.96 SD from mean cover 95% of density curve. remember 1 SD from mean cover 67%? 2 SD cover between 95 to 96%, another number used in plots is 80%, which has SD multiplier 1.28.
+
+as step(h) increase, $\delta_h$ increase, so the range is wider in plots.
+i
+### bootstrapped
+> When a normal distribution for the forecast errors is an unreasonable assumption, one alternative is to use bootstrapping, which only assumes that the forecast errors are uncorrelated.
+
+specify `bootstrap=TRUE`
+
+### transformation
+
+> If a transformation has been used, then the prediction interval should be computed on the transformed scale, and the end points back-transformed to give a prediction interval on the original scale. 
+
+
+
+# Apendix
+### chi square test
+is change of variable due to chance along? df = number of outcome -1. right tail test, if test value less than critical vaule, failed to reject H0, if more than critical value then reject H0. H0 is that the chagne is due to chance, (true randomness?)

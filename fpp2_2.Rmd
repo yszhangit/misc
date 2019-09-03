@@ -1,0 +1,59 @@
+---
+title: "fpp2_note2.rmd"
+author: "yinshu zhang"
+date: "August 31, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+```
+
+# "ts" objects
+for anual observation, you dont need to provide `frequency`, otherwise specify `frequency`(for data range over a year?)
+- 4: quarterly 
+- 12: monthly
+- 52: weekly
+
+> The "frequency" is the number of observations before the seasonal pattern repeats. This is the opposite of the definition of frequency in physics, or in Fourier analysis, where this would be called the "period"
+
+data per min might have hourly seasonality(frequency=60) or a daily (1400) or a weeky (10080) seasonality, or even annual (525960).
+
+
+
+# plotting
+```{r plot1}
+autoplot(a10)
+ggseasonplot(a10, year.labels = T, year.labels.left = T)
+ggseasonplot(a10, polar=TRUE)
+ggsubseriesplot(a10)  # blue line is mean of each year in same season(month)
+```
+
+
+# autocorrelation or lagged correlation
+> linera relationship between lagged value of time series
+
+$r_1$ measures relationship between $y_t$ and $y_{t-1}$, $r_2$ measures relationship between $y_t$ and $y_{t-2}$,  where T is length of time series, $\bar{y}$ is mean, then
+
+$r_k = \frac{ \sum_{t=k+1}^T ({y_t-\bar{y}})(y_{t-k}-\bar{y}) }{\sum_{t-1}^T (y_t-\bar{y})^2}$
+
+`ggAcf` create correlogram
+
+```{r acf}
+beer2 <- window(ausbeer, start=1992)
+ggAcf(beer2)
+```
+
+### blue line
+in the ACF is $\pm2/\sqrt{T}$ where T is the length of the time series. if 95% spikes are within threshold, then it's white noise.
+
+### Trend and seasonality
+
+```{r acf1}
+aelec <- window(elec, start=1980)
+autoplot(aelec)
+ggAcf(aelec, lag=48)
+```
+
+decrease in this correlogram as lag incraseas is due to trend, while the "scalloped" shape is due to seasonality.
