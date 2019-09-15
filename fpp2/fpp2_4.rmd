@@ -1,0 +1,95 @@
+---
+title: "fpp2_4"
+author: "yinshu zhang"
+date: "September 2, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fpp2)
+```
+
+- names for `y`: regressand, dependent, explained variable, or forecast in this book. 
+- names for `x`: regressors, independent, explanatory variables, in this book call predictor.
+
+# simple linear regression
+
+example:
+
+```{r lm}
+uschange %>% as.data.frame() %>% GGally::ggpairs() 
+dat <- uschange[, c("Income","Consumption")]
+autoplot(dat)
+lm(Consumption ~ Income, data=as.data.frame(dat))
+tslm(Consumption ~ Income, data=dat)
+```
+
+*without season and trend, `tslm` is the same as `lm`*
+
+### a multi-lineare regression model
+
+if $\beta$ are coefficients e is error, then $y_t=\beta_0+\beta_1x_{1,t}+\beta_2x_{2,t}+\beta_3x_{3,t}+e_t$
+
+```{r fit}
+fit.consMR <- tslm(
+  Consumption ~ Income + Production + Unemployment + Savings,
+  data=uschange)
+summary(fit.consMR)
+```
+
+### fitted value
+predciton of yt within training set.
+
+$\hat{y}_t = \hat{\beta_0} + \hat{\beta_1}x_{1,t} + \hat{\beta_2}x_{2,t} + ... \hat{\beta_k}x_{k,t} $
+
+### goodness-of-fit, R-squared
+observed y and predicted $\hat{y}$
+
+$R^2=\sum(\hat{y}_t - \bar{y})^2 / \sum(y_t - \bar{y})^2$
+
+$R^2$ should close to 1 if prediciton is close to actual value, $R^2$ is between 0 and 1. Since this is base on training set, by adding more data, $R^2$ will never reduced, a better way is to validate with test set.
+
+maximising $R^2$ is equivalent to minimising SSE.
+
+### Adjuected R-squared
+$\bar{R}^2 = 1-(1-R^2)(T-1)/(T-k-1)$ T is number of observations and k is the number of perdictors. best model has largest value of "R-var-squared".
+
+### standard error of regression
+
+standard deviation of residuals, or "redisual standard error".
+
+# TS dummy variable
+
+remember dummy variables need n-1 add to lm model, because one is intercept already.
+
+example of quarters as dummy variable
+
+```{r dummy}
+beer2 <- window(ausbeer, start=1992)
+fit.beer <- tslm(beer2 ~ trend + season)
+summary(fit.beer)
+```
+
+## Intervention variables
+adhoc unpredictable events
+
+- if effect for one period, we use "spike variable", this is equivalent to dummary variable handlning an outlier.
+- interventions have an immediate and permanent effect. If an intervention causes a level shift immediatly and permanently, we use "step" vaiable, which is, zero before and 1 afterwards
+- Another form of permanent effect is a change of slope. Here the intervention is handled using a piecewise linear trend;
+
+# Fourier series
+
+An alternative to using seasonal dummy variables, especially for long seasonal periods, is to use Fourier terms. the advenagte is fewer variables.
+
+> a series of sine and cosine terms of the right frequencies can approximate any periodic function
+
+K is season/2
+
+```{r forier}
+fourier.beer <- tslm(beer2 ~ trend + fourier(beer2, K=2))
+summary(fourier.beer)
+```
+
+
+
