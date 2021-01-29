@@ -1,0 +1,55 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<html>
+<head>
+<title>Math Qesutions</title>
+<script type="text/javascript" src="/js/jquery.js"></script>
+<script>
+$(document).ready(function() {
+	var perpage=$('select[name=perpage]').val();
+	var pages=$('select[name=pages]').val();
+
+	$('select[name=perpage]').change(function() {
+		perpage=$(this).val();
+		question_cnt();
+	});
+	$('select[name=pages]').change(function() {
+		pages=$(this).val();
+		question_cnt();
+	});
+	question_cnt();
+	function question_cnt() {
+		var question_cnt=perpage*pages;
+		$('span#cnt').html(question_cnt);
+	}
+
+});
+</script>
+</head>
+<body>
+<div id=container>
+ <div id=limits>
+ <form action=math.php method=get>
+  first number from <input name=n1_min size=2> to <input name=n1_max size=2>
+  <select name=oper >
+   <option value=sub >-</option>
+   <option value=add >+</option>
+   <option value=mul>x</option>
+   <option value=div>/</option>
+  </select>
+  second number from <input name=n2_min size=2> to <input name=n2_max size=2>, 
+  result is <select name=comp ><option value=gt >&gt;</option><option value=lt >&lt;</option></select> <input name=res size=2>.<br />
+
+carry set to <select name=carry><option>ignore</option><option>full</option><option>partal</option><option>no</option><option>yes</option></select>.<br />
+ 
+ format:<select name=perpage><option value=20>long</option><option value=60>short</option></select>
+ pages:<select name=pages><option>1</option><option>2</option><option>3</option></select>, <span id=cnt></span> questions.<br />
+  <input type=submit>
+  </form>
+ </div>
+ <div id=questions>
+ </div>
+</div>
+</body>
+</html>
